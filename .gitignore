@@ -37,3 +37,4 @@ coverage/
 .history
 
 server.log
+/.vs

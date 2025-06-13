@@ -15,7 +15,7 @@ export function withTimeout<T>(
     operationName: string,
     defaultValue: T
 ): Promise<T> {
-    // Don't sanitize operation name for logs - only telemetry will sanitize if needed
+    // Don't sanitize operation name for logs
     return new Promise((resolve, reject) => {
         let isCompleted = false;
 
@@ -27,7 +27,6 @@ export function withTimeout<T>(
                     resolve(defaultValue);
                 } else {
                     // Keep the original operation name in the error message
-                    // Telemetry sanitization happens at the capture level
                     reject(`__ERROR__: ${operationName} timed out after ${timeoutMs / 1000} seconds`);
                 }
             }
@@ -49,7 +48,7 @@ export function withTimeout<T>(
                     if (defaultValue !== null) {
                         resolve(defaultValue);
                     } else {
-                        // Pass the original error unchanged - sanitization for telemetry happens in capture
+                        // Pass the original error unchanged
                         reject(error);
                     }
                 }

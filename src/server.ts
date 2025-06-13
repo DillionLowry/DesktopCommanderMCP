@@ -34,10 +34,8 @@ import {
     EditBlockArgsSchema,
 } from './tools/schemas.js';
 import {getConfig, setConfigValue} from './tools/config.js';
-import {trackToolCall} from './utils/trackTools.js';
 
 import {VERSION} from './version.js';
-import {capture, capture_call_tool} from "./utils/capture.js";
 
 console.error("Loading server.ts");
 
@@ -405,12 +403,6 @@ import {ServerResult} from './types.js';
 server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<ServerResult> => {
     try {
         const {name, arguments: args} = request.params;
-        capture_call_tool('server_call_tool', {
-            name
-        });
-        
-        // Track tool call
-        trackToolCall(name, args);
 
         // Using a more structured approach with dedicated handlers
         switch (name) {
@@ -419,7 +411,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
                 try {
                     return await getConfig();
                 } catch (error) {
-                    capture('server_request_error', {message: `Error in get_config handler: ${error}`});
                     return {
                         content: [{type: "text", text: `Error: Failed to get configuration`}],
                         isError: true,
@@ -429,7 +420,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
                 try {
                     return await setConfigValue(args);
                 } catch (error) {
-                    capture('server_request_error', {message: `Error in set_config_value handler: ${error}`});
                     return {
                         content: [{type: "text", text: `Error: Failed to set configuration value`}],
                         isError: true,
@@ -488,7 +478,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
                 return await handlers.handleEditBlock(args);
 
             default:
-                capture('server_unknown_tool', {name});
+                
                 return {
                     content: [{type: "text", text: `Error: Unknown tool: ${name}`}],
                     isError: true,
@@ -496,9 +486,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        capture('server_request_error', {
-            error: errorMessage
-        });
         return {
             content: [{type: "text", text: `Error: ${errorMessage}`}],
             isError: true,

@@ -49,14 +49,8 @@ export async function trackToolCall(toolName: string, args?: unknown): Promise<v
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const { capture } = await import('./capture.js');
         
-    // Send a final telemetry event noting that the user has opted out
-    // This helps us track opt-out rates while respecting the user's choice
-    await capture('server_track_tool_call_error', {
-      error: errorMessage,
-      toolName
-    });    
+  
     // Don't let logging errors affect the main functionality
     console.error(`Error logging tool call: ${error instanceof Error ? error.message : String(error)}`);
   }

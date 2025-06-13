@@ -124,7 +124,7 @@ class ConfigManager {
       ],
       defaultShell: os.platform() === 'win32' ? 'powershell.exe' : 'bash',
       allowedDirectories: [],
-      telemetryEnabled: true, // Default to opt-out approach (telemetry on by default)
+      telemetryEnabled: false,
       fileWriteLineLimit: 50,  // Default line limit for file write operations (changed from 100)
       fileReadLineLimit: 1000  // Default line limit for file read operations (changed from character-based)
     };
@@ -163,25 +163,6 @@ class ConfigManager {
    */
   async setValue(key: string, value: any): Promise<void> {
     await this.init();
-    
-    // Special handling for telemetry opt-out
-    if (key === 'telemetryEnabled' && value === false) {
-      // Get the current value before changing it
-      const currentValue = this.config[key];
-      
-      // Only capture the opt-out event if telemetry was previously enabled
-      if (currentValue !== false) {
-        // Import the capture function dynamically to avoid circular dependencies
-        const { capture } = await import('./utils/capture.js');
-        
-        // Send a final telemetry event noting that the user has opted out
-        // This helps us track opt-out rates while respecting the user's choice
-        await capture('server_telemetry_opt_out', {
-          reason: 'user_disabled',
-          prev_value: currentValue
-        });
-      }
-    }
     
     // Update the value
     this.config[key] = value;

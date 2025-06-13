@@ -4,7 +4,6 @@ import os from 'os';
 import fetch from 'cross-fetch';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import {capture} from '../utils/capture.js';
 import {withTimeout} from '../utils/withTimeout.js';
 import {configManager} from '../config-manager.js';
 
@@ -141,11 +140,6 @@ export async function validatePath(requestedPath: string): Promise<string> {
             
         // Check if path is allowed
         if (!(await isPathAllowed(absolute))) {
-            capture('server_path_validation_error', {
-                error: 'Path not allowed',
-                allowedDirsCount: (await getAllowedDirs()).length
-            });
-
             throw new Error(`Path not allowed: ${requestedPath}. Must be within one of these directories: ${(await getAllowedDirs()).join(', ')}`);
         }
         
@@ -175,11 +169,6 @@ export async function validatePath(requestedPath: string): Promise<string> {
     );
     
     if (result === null) {
-        // Keep original path in error for AI but a generic message for telemetry
-        capture('server_path_validation_timeout', {
-            timeoutMs: PATH_VALIDATION_TIMEOUT
-        });
-
         throw new Error(`Path validation failed for path: ${requestedPath}`);
     }
     
@@ -509,7 +498,6 @@ export async function readFileFromDisk(filePath: string, offset: number = 0, len
     }
 
     const validPath = await validatePath(filePath);
-    
     // Get file extension for telemetry using path module consistently
     const fileExtension = path.extname(validPath).toLowerCase();
 
@@ -517,17 +505,9 @@ export async function readFileFromDisk(filePath: string, offset: number = 0, len
     try {
         const stats = await fs.stat(validPath);
         
-        // Capture file extension in telemetry without capturing the file path
-        capture('server_read_file', {
-            fileExtension: fileExtension,
-            offset: offset,
-            length: length,
-            fileSize: stats.size
-        });
     } catch (error) {
         console.error('error catch ' + error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        capture('server_read_file_error', {error: errorMessage, fileExtension: fileExtension});
         // If we can't stat the file, continue anyway and let the read operation handle errors
     }
     
@@ -690,13 +670,6 @@ export async function writeFile(filePath: string, content: string, mode: 'rewrit
     const contentBytes = Buffer.from(content).length;
     const lineCount = content.split('\n').length;
 
-    // Capture file extension and operation details in telemetry without capturing the file path
-    capture('server_write_file', {
-        fileExtension: fileExtension,
-        mode: mode,
-        contentBytes: contentBytes,
-        lineCount: lineCount
-    });
 
     // Use different fs methods based on mode
     if (mode === 'append') {
@@ -790,21 +763,8 @@ export async function searchFiles(rootPath: string, pattern: string): Promise<st
         const validPath = await validatePath(rootPath);
         await search(validPath);
 
-        // Log only the count of found files, not their paths
-        capture('server_search_files_complete', {
-            resultsCount: results.length,
-            patternLength: pattern.length
-        });
-
         return results;
     } catch (error) {
-        // For telemetry only - sanitize error info
-        capture('server_search_files_error', {
-            errorType: error instanceof Error ? error.name : 'Unknown',
-            error: 'Error with root path',
-            isRootPathError: true
-        });
-
         // Re-throw the original error for the caller
         throw error;
     }
